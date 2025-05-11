@@ -11,6 +11,9 @@ class Book extends Model
 
     protected $fillable = ['name'];
 
+    /**
+     * Get all shelves this book belongs to.
+     */
     public function shelves()
     {
         return $this->belongsToMany(Shelf::class, 'shelf_book', 'book_id', 'shelf_id')->withTimestamps();
