@@ -40,19 +40,13 @@ class ShelfController extends Controller
 
     public function getShelf(Request $request, $id)
     {
-        $shelf = Shelf::with('books')->find($id);
+        $shelf = Shelf::with(['books', 'user'])->find($id);
 
         if (!$shelf) {
             return response()->json([
                 'message' => 'Shelf not found'
             ], 404);
         }
-
-        $user = $shelf->user;
-        $shelf->user_name = $user->name;
-        $shelf->user_email = $user->email;
-        $books = $shelf->books;
-        $shelf->books = $books;
 
         return response()->json([
             'message' => 'Shelf found',
