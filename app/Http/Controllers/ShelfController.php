@@ -6,6 +6,7 @@ use App\Models\Shelf;
 use App\Models\User;
 use App\Models\Book;
 use Illuminate\Http\Request;
+use App\Http\Resources\ShelfResource;
 
 class ShelfController extends Controller
 {
@@ -34,7 +35,7 @@ class ShelfController extends Controller
 
         return response()->json([
             'message' => 'Shelf created successfully',
-            'shelf' => $shelf
+            'shelf' => new ShelfResource($shelf)
         ], 201);
     }
 
@@ -50,7 +51,7 @@ class ShelfController extends Controller
 
         return response()->json([
             'message' => 'Shelf found',
-            'shelf' => $shelf
+            'shelf' => new ShelfResource($shelf)
         ], 200);
     }
 
@@ -94,7 +95,7 @@ class ShelfController extends Controller
 
         return response()->json([
             'message' => 'Book added to shelf',
-            'shelf' => $shelf
+            'shelf' => new ShelfResource($shelf)
         ], 200);
     }
 
@@ -106,6 +107,6 @@ class ShelfController extends Controller
             $shelf->books = $shelf->books;
         }
 
-        return response()->json($shelves, 200);
+        return ShelfResource::collection($shelves);
     }
 }

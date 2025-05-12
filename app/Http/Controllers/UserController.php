@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Book;
 use Illuminate\Http\Request;
+use App\Http\Resources\UserResource;
 
 class UserController extends Controller
 {
@@ -42,7 +43,7 @@ class UserController extends Controller
 
             return response()->json([
                 'message' => 'User created successfully',
-                'user' => $user
+                'user' => new UserResource($user)
             ], 201);
         }
 
@@ -55,7 +56,7 @@ class UserController extends Controller
         
         return response()->json([
             'message' => 'User created successfully',
-            'user' => $user
+            'user' => new UserResource($user)
         ], 201);
     }
 
@@ -72,12 +73,11 @@ class UserController extends Controller
         $load_books = $request->input('load_books');
         $response = [
             'message' => 'User found',
-            'user' => $user,
+            'user' => new UserResource($user),
             'shelves' => $user->shelves
         ];
 
         if($load_books){
-            // Load books through shelves
             $books = [];
             foreach($user->shelves as $shelf){
                 foreach($shelf->books as $book){
@@ -110,6 +110,6 @@ class UserController extends Controller
     public function getUsers(Request $request){
         $users = User::paginate(3);
 
-        return response()->json($users, 200);
+        return UserResource::collection($users);
     }
 }
