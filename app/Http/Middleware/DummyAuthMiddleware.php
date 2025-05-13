@@ -17,9 +17,7 @@ class DummyAuthMiddleware
     {
         $header = $request->header('dummy_authorization_token');
         if($header !== 'dummy'){
-            return response()->json([
-                'message' => 'Unauthorized'
-            ], 401);
+            abort(Response::HTTP_UNAUTHORIZED);
         }
         return $next($request);
     }
