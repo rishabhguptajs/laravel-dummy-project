@@ -6,105 +6,37 @@ use App\Models\User;
 use App\Models\Book;
 use Illuminate\Http\Request;
 use App\Http\Resources\UserResource;
+use Illuminate\Validation\Rules\Password;
 
 class UserController extends Controller
 {
     public function createUser(Request $request){
-        $email = $request->input('email');
-        $name = $request->input('name');
-        $password = $request->input('password');    
-        $phone = $request->input('phone');
-
-        if(!filter_var($email, FILTER_VALIDATE_EMAIL)){
-            return response()->json([
-                'message' => 'Invalid email'
-            ], 400);
-        }
-
-        if(!$name){
-            return response()->json([
-                'message' => 'Name is required'
-            ], 400);
-        }
-
-        $userExists = User::where('email', $email)->exists();
-        if($userExists){
-            return response()->json([
-                'message' => 'User already exists',
-            ], 409);
-        }
-
-        if(!$phone){
-            $user = User::create([
-                'name' => $name,
-                'email' => $email,
-                'password' => $password,
-            ]);
-
-            return response()->json([
-                'message' => 'User created successfully',
-                'user' => new UserResource($user)
-            ], 201);
-        }
-
-        $user = User::create([
-            'name' => $name,
-            'email' => $email,
-            'phone' => $phone,
-            'password' => $password,
+        $request->validate([
+            'email' => ['required', 'email', 'unique:users'],
+            'name' => ['required', 'string'],
+            'password' => ['required', 'string', Password::default()],
+            'phone' => ['required', 'numeric'],
         ]);
-        
-        return response()->json([
-            'message' => 'User created successfully',
-            'user' => new UserResource($user)
-        ], 201);
+
+        $user = User::create($request->all());
+
+        return new UserResource($user);
     }
 
-    public function getUser(Request $request){
-        $id = $request->route('id');
-        $user = User::where('id', $id)->first();
+    public function getUser(Request $request, User $user)
+    {
+        $user->load(['shelves.books']);
 
-        if(!$user){
-            return response()->json([
-                'message' => 'User not found',
-            ], 404);
-        }
-
-        $load_books = $request->input('load_books');
-        $response = [
-            'message' => 'User found',
-            'user' => new UserResource($user),
-            'shelves' => $user->shelves
-        ];
-
-        if($load_books){
-            $books = [];
-            foreach($user->shelves as $shelf){
-                foreach($shelf->books as $book){
-                    $books[] = $book;
-                }
-            }
-            $response['books'] = $books;
-        }
-
-        return response()->json($response, 200);
+        return new UserResource($user);
     }
 
-    public function deleteUser(Request $request){
-        $id = $request->route('id');
-        $user = User::find($id);
-
-        if(!$user){
-            return response()->json([
-                'message' => 'User not found',
-            ], 404);
-        }
-
+    public function deleteUser(Request $request, User $user)
+    {
         $user->delete();
 
         return response()->json([
             'message' => 'User soft deleted successfully'
-        ], 200);
+        ]);
     }
 
     public function getUsers(Request $request){
