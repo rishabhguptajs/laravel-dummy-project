@@ -12,100 +12,49 @@ class ShelfController extends Controller
 {
     public function createShelf(Request $request)
     {
-        $userId = $request->input('user_id');
-        $name = $request->input('name');
-
-        if (!$userId || !$name) {
-            return response()->json([
-                'message' => 'User ID and name are required'
-            ], 400);
-        }
-
-        $user = User::find($userId);
-        if (!$user) {
-            return response()->json([
-                'message' => 'User not found'
-            ], 404);
-        }
-
-        $shelf = Shelf::create([
-            'user_id' => $userId,
-            'name' => $name,
+        $request->validate([
+            'user_id' => ['required'],
+            'name' => ['required']
         ]);
 
-        return response()->json([
-            'message' => 'Shelf created successfully',
-            'shelf' => new ShelfResource($shelf)
-        ], 201);
+        $shelf = Shelf::create($request->all());
+
+        return new ShelfResource($shelf);
     }
 
-    public function getShelf(Request $request, $id)
+    public function getShelf(Request $request, Shelf $shelf)
     {
-        $shelf = Shelf::with(['books', 'user'])->find($id);
-
-        if (!$shelf) {
-            return response()->json([
-                'message' => 'Shelf not found'
-            ], 404);
-        }
-
-        return response()->json([
-            'message' => 'Shelf found',
-            'shelf' => new ShelfResource($shelf)
-        ], 200);
+        $shelf->load('books');
+        return new ShelfResource($shelf);
     }
 
     public function assignBooks(Request $request)
     {
-        $shelfId = $request->input('shelf_id');
-        $bookId = $request->input('book_id');
-        $userId = $request->input('user_id');
+        $validated = $request->validate([
+            'shelf_id' => 'required|exists:shelf,id',
+            'book_id' => 'required|exists:books,id',
+            'user_id' => 'required|exists:users,id',
+        ]);
 
-        if (!$shelfId || !$bookId || !$userId) {
-            return response()->json([
-                'message' => 'Shelf ID, book ID and user ID are required'
-            ], 400);
+        $shelf = Shelf::findOrFail($validated['shelf_id']);
+        if ($shelf->user_id !== $validated['user_id']) {
+            abort(404, 'Shelf does not belong to user');
         }
 
-        $shelf = Shelf::where('id', $shelfId)
-                     ->where('user_id', $userId)
-                     ->first();
-
-        if (!$shelf) {
-            return response()->json([
-                'message' => 'Shelf not found or does not belong to user'
-            ], 404);
-        }
-
-        $book = Book::find($bookId);
-        if (!$book) {
-            return response()->json([
-                'message' => 'Book not found'
-            ], 404);
-        }
-
+        $book = Book::findOrFail($validated['book_id']);
         if ($book->shelves()->count() > 0) {
-            return response()->json([
-                'message' => 'Book is already attached to a shelf'
-            ], 400);
+            abort(400, 'Book is already attached to a shelf');
         }
 
-        $shelf->books()->attach($bookId);
-        $shelf->books = $shelf->books;
+        $shelf->books()->attach($book->id);
+        $shelf->load('books');
 
-        return response()->json([
-            'message' => 'Book added to shelf',
-            'shelf' => new ShelfResource($shelf)
-        ], 200);
+        return new ShelfResource($shelf);
     }
 
     public function getShelves(Request $request)
     {
-        $shelves = Shelf::paginate(5);
-        
-        foreach ($shelves as $shelf) {
-            $shelf->books = $shelf->books;
-        }
+        $shelves = Shelf::with('books')->paginate(5);
 
         return ShelfResource::collection($shelves);
     }
