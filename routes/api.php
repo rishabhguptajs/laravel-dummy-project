@@ -12,6 +12,6 @@ Route::get('/get_users', [UserController::class, 'getUsers'])->middleware('dummy
 
 // Shelf routes
 Route::post('/create_shelf', [ShelfController::class, 'createShelf'])->middleware('dummy');
-Route::get('/get_shelf/{id}', [ShelfController::class, 'getShelf'])->middleware('dummy');
+Route::get('/get_shelf/{shelf}', [ShelfController::class, 'getShelf'])->middleware('dummy');
 Route::post('/assign_books', [ShelfController::class, 'assignBooks'])->middleware('dummy');
 Route::get('/get_shelves', [ShelfController::class, 'getShelves'])->middleware('dummy');
