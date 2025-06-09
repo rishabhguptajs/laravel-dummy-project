@@ -43,24 +43,24 @@ class ShelfControllerTest extends TestCase
     /**
      * Test creating shelf with invalid data
      */
-    // public function test_create_shelf_validation_fails(): void
-    // {
-    //     $response = $this->postJson('/api/create_shelf', [
-    //         'name' => 'Test Shelf'
-    //         // Missing required user_id
-    //     ]);
+    public function test_create_shelf_validation_fails(): void
+    {
+        $user = User::factory()->create();
 
-    //     $response->assertStatus(422)
-    //             ->assertJsonValidationErrors(['user_id']);
+        $response = $this->postJson("/api/create_shelf", [
+            'name' => 'My Test Shelf' //not passing user_id
+        ]);
 
-    //     $response = $this->postJson('/api/create_shelf', [
-    //         'user_id' => 1
-    //         // Missing required name
-    //     ]);
+        $response->assertStatus(422)
+                ->assertJsonValidationErrors(['user_id']);
 
-    //     $response->assertStatus(422)
-    //             ->assertJsonValidationErrors(['name']);
-    // }
+        $response = $this->postJson("/api/create_shelf", [
+            'user_id' => $user->id, //not passing name
+        ]);
+
+        $response->assertStatus(422)
+                ->assertJsonValidationErrors(['name']);
+    }
 
     /**
      * Test getting a specific shelf with books
@@ -134,79 +134,79 @@ class ShelfControllerTest extends TestCase
     /**
      * Test assigning books with invalid shelf_id
      */
-    // public function test_assign_books_invalid_shelf(): void
-    // {
-    //     $user = User::factory()->create();
-    //     $book = Book::factory()->create();
+    public function test_assign_books_invalid_shelf(): void
+    {
+        $user = User::factory()->create();
+        $book = Book::factory()->create();
 
-    //     $response = $this->postJson('/api/assign_books', [
-    //         'shelf_id' => 999, // Non-existent shelf
-    //         'book_id' => $book->id,
-    //         'user_id' => $user->id
-    //     ]);
+        $response = $this->postJson('/api/assign_books', [
+            'shelf_id' => 999, // any number
+            'book_id' => $book->id,
+            'user_id' => $user->id
+        ]);
 
-    //     $response->assertStatus(422)
-    //             ->assertJsonValidationErrors(['shelf_id']);
-    // }
+        $response->assertStatus(422)
+                ->assertJsonValidationErrors(['shelf_id']);
+    }
 
     /**
      * Test assigning books with invalid book_id
      */
-    // public function test_assign_books_invalid_book(): void
-    // {
-    //     $user = User::factory()->create();
-    //     $shelf = Shelf::factory()->create(['user_id' => $user->id]);
+    public function test_assign_books_invalid_book(): void
+    {
+        $user = User::factory()->create();
+        $shelf = Shelf::factory()->create(['user_id' => $user->id]);
 
-    //     $response = $this->postJson('/api/assign_books', [
-    //         'shelf_id' => $shelf->id,
-    //         'book_id' => 999, // Non-existent book
-    //         'user_id' => $user->id
-    //     ]);
+        $response = $this->postJson('/api/assign_books', [
+            'shelf_id' => $shelf->id,
+            'book_id' => 999, // any number
+            'user_id' => $user->id
+        ]);
 
-    //     $response->assertStatus(422)
-    //             ->assertJsonValidationErrors(['book_id']);
-    // }
+        $response->assertStatus(422)
+                ->assertJsonValidationErrors(['book_id']);
+    }
 
     /**
      * Test assigning books with invalid user_id
      */
-    // public function test_assign_books_invalid_user(): void
-    // {
-    //     $user = User::factory()->create();
-    //     $shelf = Shelf::factory()->create(['user_id' => $user->id]);
-    //     $book = Book::factory()->create();
+    public function test_assign_books_invalid_user(): void
+    {
+        $user = User::factory()->create();
+        $shelf = Shelf::factory()->create(['user_id' => $user->id]);
+        $book = Book::factory()->create();
 
-    //     $response = $this->postJson('/api/assign_books', [
-    //         'shelf_id' => $shelf->id,
-    //         'book_id' => $book->id,
-    //         'user_id' => 999 // Non-existent user
-    //     ]);
+        $response = $this->postJson('/api/assign_books', [
+            'shelf_id' => $shelf->id,
+            'book_id' => $book->id,
+            'user_id' => 999 // any number
+        ]);
 
-    //     $response->assertStatus(422)
-    //             ->assertJsonValidationErrors(['user_id']);
-    // }
+        $response->assertStatus(422)
+                ->assertJsonValidationErrors(['user_id']);
+    }
 
     /**
      * Test assigning books when shelf doesn't belong to user
      */
-    // public function test_assign_books_shelf_not_belongs_to_user(): void
-    // {
-    //     $user1 = User::factory()->create();
-    //     $user2 = User::factory()->create();
-    //     $shelf = Shelf::factory()->create(['user_id' => $user1->id]);
-    //     $book = Book::factory()->create();
+    public function test_assign_books_shelf_not_belongs_to_user(): void
+    {
+        $user1 = User::factory()->create();
+        $user2 = User::factory()->create();
+        $shelf = Shelf::factory()->create(['user_id' => $user1->id]);
+        $book = Book::factory()->create();
 
-    //     $response = $this->postJson('/api/assign_books', [
-    //         'shelf_id' => $shelf->id,
-    //         'book_id' => $book->id,
-    //         'user_id' => $user2->id // Different user trying to assign to shelf
-    //     ]);
+        $response = $this->postJson('/api/assign_books', [
+            'shelf_id' => $shelf->id,
+            'book_id' => $book->id,
+            'user_id' => $user2->id // some other user trying to attach the book
+        ]);
 
-    //     $response->assertStatus(404)
-    //             ->assertJson([
-    //                 'message' => 'Shelf does not belong to user'
-    //             ]);
-    // }
+        $response->assertStatus(404)
+                ->assertJson([
+                    'message' => 'Shelf does not belong to user'
+                ]);
+    }
 
     /**
      * Test assigning books when book is already attached to shelf
@@ -218,10 +218,10 @@ class ShelfControllerTest extends TestCase
         $shelf2 = Shelf::factory()->create(['user_id' => $user->id]);
         $book = Book::factory()->create();
 
-        // Attach book to first shelf
+        // attach to the shelf first
         $shelf1->books()->attach($book->id);
 
-        // Try to attach same book to second shelf
+        // try to attach same book to second shelf
         $response = $this->postJson('/api/assign_books', [
             'shelf_id' => $shelf2->id,
             'book_id' => $book->id,
