@@ -215,7 +215,7 @@ class ShelfControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $shelf1 = Shelf::factory()->create(['user_id' => $user->id]);
-        $shelf2 = Shelf::factory()->create(['user_id' => $user->id]);
+        // $shelf2 = Shelf::factory()->create(['user_id' => $user->id]);
         $book = Book::factory()->create();
 
         // attach to the shelf first
@@ -223,7 +223,7 @@ class ShelfControllerTest extends TestCase
 
         // try to attach same book to second shelf
         $response = $this->postJson('/api/assign_books', [
-            'shelf_id' => $shelf2->id,
+            'shelf_id' => $shelf1->id,
             'book_id' => $book->id,
             'user_id' => $user->id
         ]);
