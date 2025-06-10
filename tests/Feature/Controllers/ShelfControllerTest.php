@@ -13,6 +13,16 @@ class ShelfControllerTest extends TestCase
     use RefreshDatabase;
 
     /**
+     * Get the headers needed for API requests
+     */
+    private function getHeaders(): array
+    {
+        return [
+            'dummy_authorization_token' => 'dummy'
+        ];
+    }
+
+    /**
      * Test creating a new shelf
      */
     public function test_create_shelf(): void
@@ -22,7 +32,7 @@ class ShelfControllerTest extends TestCase
         $response = $this->postJson('/api/create_shelf', [
             'user_id' => $user->id,
             'name' => 'My Test Shelf'
-        ]);
+        ], $this->getHeaders());
 
         $response->assertStatus(201)
                 ->assertJsonStructure([
@@ -34,7 +44,7 @@ class ShelfControllerTest extends TestCase
                     ]
                 ]);
 
-        $this->assertDatabaseHas('shelves', [
+        $this->assertDatabaseHas('shelf', [
             'user_id' => $user->id,
             'name' => 'My Test Shelf'
         ]);
@@ -49,14 +59,14 @@ class ShelfControllerTest extends TestCase
 
         $response = $this->postJson("/api/create_shelf", [
             'name' => 'My Test Shelf' //not passing user_id
-        ]);
+        ], $this->getHeaders());
 
         $response->assertStatus(422)
                 ->assertJsonValidationErrors(['user_id']);
 
         $response = $this->postJson("/api/create_shelf", [
             'user_id' => $user->id, //not passing name
-        ]);
+        ], $this->getHeaders());
 
         $response->assertStatus(422)
                 ->assertJsonValidationErrors(['name']);
@@ -72,7 +82,7 @@ class ShelfControllerTest extends TestCase
         $books = Book::factory()->count(3)->create();
         $shelf->books()->attach($books->pluck('id'));
 
-        $response = $this->getJson("/api/get_shelf/{$shelf->id}");
+        $response = $this->getJson("/api/get_shelf/{$shelf->id}", $this->getHeaders());
 
         $response->assertStatus(200)
                 ->assertJsonStructure([
@@ -83,7 +93,7 @@ class ShelfControllerTest extends TestCase
                         'books' => [
                             '*' => [
                                 'id',
-                                'title'
+                                'name'
                             ]
                         ]
                     ]
@@ -95,7 +105,7 @@ class ShelfControllerTest extends TestCase
      */
     public function test_get_shelf_not_found(): void
     {
-        $response = $this->getJson('/api/get_shelf/999');
+        $response = $this->getJson('/api/get_shelf/999', $this->getHeaders());
 
         $response->assertStatus(404);
     }
@@ -113,7 +123,7 @@ class ShelfControllerTest extends TestCase
             'shelf_id' => $shelf->id,
             'book_id' => $book->id,
             'user_id' => $user->id
-        ]);
+        ], $this->getHeaders());
 
         $response->assertStatus(200)
                 ->assertJsonStructure([
@@ -125,7 +135,7 @@ class ShelfControllerTest extends TestCase
                     ]
                 ]);
 
-        $this->assertDatabaseHas('book_shelf', [
+        $this->assertDatabaseHas('shelf_book', [
             'shelf_id' => $shelf->id,
             'book_id' => $book->id
         ]);
@@ -140,10 +150,10 @@ class ShelfControllerTest extends TestCase
         $book = Book::factory()->create();
 
         $response = $this->postJson('/api/assign_books', [
-            'shelf_id' => 999, // any number
+            'shelf_id' => 999,
             'book_id' => $book->id,
             'user_id' => $user->id
-        ]);
+        ], $this->getHeaders());
 
         $response->assertStatus(422)
                 ->assertJsonValidationErrors(['shelf_id']);
@@ -159,9 +169,9 @@ class ShelfControllerTest extends TestCase
 
         $response = $this->postJson('/api/assign_books', [
             'shelf_id' => $shelf->id,
-            'book_id' => 999, // any number
+            'book_id' => 999,
             'user_id' => $user->id
-        ]);
+        ], $this->getHeaders());
 
         $response->assertStatus(422)
                 ->assertJsonValidationErrors(['book_id']);
@@ -179,8 +189,8 @@ class ShelfControllerTest extends TestCase
         $response = $this->postJson('/api/assign_books', [
             'shelf_id' => $shelf->id,
             'book_id' => $book->id,
-            'user_id' => 999 // any number
-        ]);
+            'user_id' => 999
+        ], $this->getHeaders());
 
         $response->assertStatus(422)
                 ->assertJsonValidationErrors(['user_id']);
@@ -199,8 +209,8 @@ class ShelfControllerTest extends TestCase
         $response = $this->postJson('/api/assign_books', [
             'shelf_id' => $shelf->id,
             'book_id' => $book->id,
-            'user_id' => $user2->id // some other user trying to attach the book
-        ]);
+            'user_id' => $user2->id
+        ], $this->getHeaders());
 
         $response->assertStatus(404)
                 ->assertJson([
@@ -214,19 +224,18 @@ class ShelfControllerTest extends TestCase
     public function test_assign_books_book_already_attached(): void
     {
         $user = User::factory()->create();
-        $shelf1 = Shelf::factory()->create(['user_id' => $user->id]);
-        // $shelf2 = Shelf::factory()->create(['user_id' => $user->id]);
+        $shelf = Shelf::factory()->create(['user_id' => $user->id]);
         $book = Book::factory()->create();
 
         // attach to the shelf first
-        $shelf1->books()->attach($book->id);
+        $shelf->books()->attach($book->id);
 
-        // try to attach same book to second shelf
+        // try to attach same book to same shelf again
         $response = $this->postJson('/api/assign_books', [
-            'shelf_id' => $shelf1->id,
+            'shelf_id' => $shelf->id,
             'book_id' => $book->id,
             'user_id' => $user->id
-        ]);
+        ], $this->getHeaders());
 
         $response->assertStatus(400)
                 ->assertJson([
